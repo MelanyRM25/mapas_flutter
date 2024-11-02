@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Home extends StatefulWidget {
@@ -11,6 +12,24 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  //METODO INIT STATE
+  @override
+  void initState() {
+    super.initState();
+    permisos();
+    //para saber mi ubicacion
+    miUbicacion();
+  }
+
+  permisos() async {
+    var estado = await Permission.location.status;
+    if (!estado.isGranted) {
+      await Permission.location.request();
+    }
+  }
+
+  mi_ubicacion() async {}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
