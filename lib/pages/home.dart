@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,13 +13,16 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  MapController _mapController = MapController();
+  var lat = -16.65288074613133;
+  var lon = -68.30169158902014;
   //METODO INIT STATE
   @override
   void initState() {
     super.initState();
     permisos();
     //para saber mi ubicacion
-    miUbicacion();
+    mi_ubicacion();
   }
 
   permisos() async {
@@ -28,7 +32,16 @@ class _HomeState extends State<Home> {
     }
   }
 
-  mi_ubicacion() async {}
+  mi_ubicacion() async {
+    var position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      lat = position.latitude;
+      lon = position.longitude;
+    });
+    //centrear
+    _mapController.move(LatLng(lat, lon), 17);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +50,9 @@ class _HomeState extends State<Home> {
           title: Text("mapas"),
         ),
         body: FlutterMap(
+          mapController: _mapController,
           options: MapOptions(
-            initialCenter: LatLng(-16.65288074613133,
-                -68.30169158902014), // Center the map over London
+            initialCenter: LatLng(lat, lon), // Center the map over London
             initialZoom: 9.2,
           ),
           children: [
@@ -49,6 +62,21 @@ class _HomeState extends State<Home> {
                   'https://tile.openstreetmap.org/{z}/{x}/{y}.png', // OSMF's Tile Server
               userAgentPackageName: 'com.example.app',
               // And many more recommended properties!
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: LatLng(lat, lon),
+                  width: 25,
+                  height: 25,
+                  child: GestureDetector(
+                    child: Icon(Icons.location_on, color: Colors.red),
+                    onTap: () {
+                      print('Ubicacion actual');
+                    },
+                  ),
+                ),
+              ],
             ),
             RichAttributionWidget(
               // Include a stylish prebuilt attribution widget that meets all requirments
