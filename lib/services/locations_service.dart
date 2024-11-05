@@ -3,7 +3,7 @@ import 'dart:convert' as convert;
 
 class LocationsService {
   //vamos al endpoint del backend
-  static const url = 'http://127.0.0.1:8000/api/';
+  static const url = 'https://aed8-181-115-172-13.ngrok-free.app/api/';
   Future getLocations() async {
     var response =
         await http.get(Uri.parse(url + 'locations')); //va a la ruta 'locatrion'

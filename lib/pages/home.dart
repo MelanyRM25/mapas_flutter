@@ -1,10 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:mi_mapa/pages/page2.dart';
 import 'package:mi_mapa/services/locations_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -15,18 +18,16 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   MapController _mapController = MapController();
-  var lat = -16.65288074613133;
-  var lon = -68.30169158902014;
-
+  var lat = -17.969667;
+  var lon = -67.114658;
   List locations = [];
-  //METODO INIT STATE
+  List<LatLng> polylinePoints = [];
+
   @override
   void initState() {
     super.initState();
-    permisos();
-    //para saber mi ubicacion
-    // mi_ubicacion();
-    //obtener las localizaciones
+    permission();
+    // miUbicacion();
     getLocations();
   }
 
@@ -38,21 +39,20 @@ class _HomeState extends State<Home> {
     });
   }
 
-  permisos() async {
-    var estado = await Permission.location.status;
-    if (!estado.isGranted) {
+  permission() async {
+    var status = await Permission.location.status;
+    if (!status.isGranted) {
       await Permission.location.request();
     }
   }
 
-  mi_ubicacion() async {
+  miUbicacion() async {
     var position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
     setState(() {
       lat = position.latitude;
       lon = position.longitude;
     });
-    //centrear
     _mapController.move(LatLng(lat, lon), 17);
   }
 
@@ -60,7 +60,26 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text("mapas"),
+          title: Text('Home'),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            children: [
+              ListTile(
+                title: Text('Mi ubicación'),
+                onTap: () {
+                  miUbicacion();
+                },
+              ),
+              ListTile(
+                title: Text('Pagina 2'),
+                onTap: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => Page2()));
+                },
+              ),
+            ],
+          ),
         ),
         body: Column(
           children: [
@@ -81,20 +100,23 @@ class _HomeState extends State<Home> {
                 // );
                 return ElevatedButton(
                   onPressed: () async {
-                    // var position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-                    // // String url = 'https://router.project-osrm.org/route/v1/driving/$lng,$lat;$lngDestino,$latDestino?geometries=geojson';
-                    // String url = 'https://router.project-osrm.org/route/v1/driving/${position.longitude},${position.latitude};${locations[index]['longitude']},${locations[index]['latitude']}?geometries=geojson';
-                    // final response = await http.get(Uri.parse(url));
-                    // // reutrnShowDialog(context, response.body);
+                    var position = await Geolocator.getCurrentPosition(
+                        desiredAccuracy: LocationAccuracy.high);
+                    // String url = 'https://router.project-osrm.org/route/v1/driving/$lng,$lat;$lngDestino,$latDestino?geometries=geojson';
+                    String url =
+                        'https://router.project-osrm.org/route/v1/driving/${position.longitude},${position.latitude};${locations[index]['longitude']},${locations[index]['latitude']}?geometries=geojson';
+                    final response = await http.get(Uri.parse(url));
+                    // reutrnShowDialog(context, response.body);
 
-                    // final data = json.decode(response.body);
-                    // final List<dynamic> coordinates = data['routes'][0]['geometry']['coordinates'];
+                    final data = json.decode(response.body);
+                    final List<dynamic> coordinates =
+                        data['routes'][0]['geometry']['coordinates'];
 
-                    // setState(() {
-                    //   polylinePoints = coordinates
-                    //       .map((point) => LatLng(point[1], point[0]))
-                    //       .toList();
-                    // });
+                    setState(() {
+                      polylinePoints = coordinates
+                          .map((point) => LatLng(point[1], point[0]))
+                          .toList();
+                    });
 
                     setState(() {
                       lat = double.parse(locations[index]['latitude']);
@@ -110,8 +132,8 @@ class _HomeState extends State<Home> {
               child: FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
-                  initialCenter: LatLng(lat, lon), // Center the map over London
-                  initialZoom: 5,
+                  initialCenter: LatLng(lat, lon),
+                  initialZoom: 6,
                 ),
                 children: [
                   TileLayer(
@@ -121,12 +143,21 @@ class _HomeState extends State<Home> {
                     userAgentPackageName: 'com.example.app',
                     // And many more recommended properties!
                   ),
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: polylinePoints,
+                        strokeWidth: 4.0,
+                        color: Colors.blue,
+                      ),
+                    ],
+                  ),
                   MarkerLayer(
                     markers: [
                       Marker(
                         point: LatLng(lat, lon),
-                        width: 25,
-                        height: 25,
+                        width: 70,
+                        height: 70,
                         child: GestureDetector(
                           child: Icon(Icons.location_on, color: Colors.red),
                           onTap: () {
@@ -141,8 +172,7 @@ class _HomeState extends State<Home> {
                     attributions: [
                       TextSourceAttribution(
                         'OpenStreetMap contributors',
-                        onTap: () => launchUrl(Uri.parse(
-                            'https://openstreetmap.org/copyright')), // (external)
+                        onTap: () => print('OpenStreetMap contributors'),
                       ),
                       // Also add images...
                     ],
